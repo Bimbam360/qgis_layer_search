@@ -26,10 +26,10 @@
 
 ## 🛠️ Development
 - [x] Basic Search  
-- [ ] Fuzzy Match Search / options
+- [ ] Fuzzy Match Search / options? Not sure if necessary tbh
 
 ## 📜 License
-MIT License (or specify applicable license)
+MIT License
 
 ## 👤 Author
 Beau Seymour
