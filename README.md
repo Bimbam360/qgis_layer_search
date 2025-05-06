@@ -13,7 +13,7 @@
 - Highlights matching layers in the Layers panel.
 
 ## 🧭 Usage
-1. Install and enable the plugin through the QGIS Plugin Manager.
+1. Install and enable the plugin through the QGIS Plugin Manager (TBD - For the time being copy to your plugin directory and enable manually).
 2. A search bar will appear at the top of the Layers panel.
 3. Start typing any part of a layer's name.
 4. Matching layers will be highlighted and their parent groups expanded.
