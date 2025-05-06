@@ -2,6 +2,7 @@
 
 ## 📄 Overview
 **LayerSearch** — Ever have a project with tens or even hundreds of layers nested in various Groups and found it a PITA to find the layer you want? Same.
+![Layer Search](https://github.com/user-attachments/assets/b42ca30f-5682-41cd-bfdc-fdb8f47a2f6d)
 
 ## ✨ Features
 - Adds a simple search box to the Layers panel.
