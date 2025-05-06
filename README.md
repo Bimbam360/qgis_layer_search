@@ -6,6 +6,10 @@ So I developed Layer Search, a simple plugin that adds search functionality to t
 
 ![Layer Search](https://github.com/user-attachments/assets/b42ca30f-5682-41cd-bfdc-fdb8f47a2f6d)
 
+## But Why Though
+QGIS has a builtin broad search, but it is detached from the Layers panel (so does not move with it) and does not show the tree hierarchy while searching. 
+Basically I want my search button at the top, for it to be scoped just to layers and to give more satisfying visual feedback 🤷‍♂️
+
 ## Usage
 1. Install and enable the plugin through the QGIS Plugin Manager (TBD - For the time being copy to your plugin directory and enable manually).
 2. A search bar will appear at the top of the Layers panel.
