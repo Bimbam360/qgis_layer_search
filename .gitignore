@@ -32,3 +32,5 @@ ipynb_checkpoints/
 
 # Local development environment settings (optional)
 # config.py         # Or other specific configuration files not meant for versioning
+qgis_layer_search/
+*.zip
