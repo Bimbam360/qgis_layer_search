@@ -1,0 +1,10 @@
+[general]
+name=LayerSearch
+version=1.0
+description=A plugin that adds a search box to the Layers panel to highlight layers by name.
+authorName=Beau Seymour
+email=beau@seemore.games
+qgisMinimumVersion=3.0
+experimental=False
+deprecated=False
+category=Plugins
