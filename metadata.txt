@@ -9,3 +9,8 @@ experimental=False
 deprecated=False
 category=Plugins
 icon=icon.png
+
+about=Adds search functionality to the Layer panel to identify where layers are in the tree.
+tracker=https://github.com/Bimbam360/qgis_layer_search/issues
+tags=search,layers
+homepage=https://github.com/Bimbam360/qgis_layer_search
