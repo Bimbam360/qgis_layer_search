@@ -1,18 +1,12 @@
-# 🔍 QGIS LayerSearch Plugin
+# 🔍 QGIS Layer Search Plugin
 
 ## 📄 Overview
-Ever have a project with tens or even hundreds of layers nested in various Groups and found it a PITA to find the layer you want? Same.
+Ever have a project with tens or even hundreds of layers nested in various Groups and found it a PITA to find the layer you want? Same!
+So I developed Layer Search, a simple plugin that adds search functionality to the Layers panel:
 
 ![Layer Search](https://github.com/user-attachments/assets/b42ca30f-5682-41cd-bfdc-fdb8f47a2f6d)
 
-## ✨ Features
-- Adds a simple search box to the Layers panel.
-- Filters layers based on substring matches (case-insensitive).
-- Automatically expands groups containing matching layers.
-- Restores original group expansion state when the search is cleared.
-- Highlights matching layers in the Layers panel.
-
-## 🧭 Usage
+## ✨ Usage
 1. Install and enable the plugin through the QGIS Plugin Manager (TBD - For the time being copy to your plugin directory and enable manually).
 2. A search bar will appear at the top of the Layers panel.
 3. Start typing any part of a layer's name.
