@@ -1,16 +1,17 @@
 [general]
+icon=icon.png
 name=Layer Search
 version=1.0
-description=A plugin that adds a search box to the Layers panel to highlight layers by name.
+description=A plugin that adds a search box to the Layers panel to highlight layers by name within the Layer Panel tree
 authorName=Beau Seymour
 email=beau@seemore.games
 qgisMinimumVersion=3.0
 experimental=False
 deprecated=False
 category=Plugins
-icon=icon.png
 
-about=Adds search functionality to the Layer panel to identify where layers are in the tree.
+
+about=QGIS has a builtin broad search, but it is detached from the Layers panel (so does not move with it) and does not show the tree hierarchy while searching. Basically I want my search button at the top, for it to be scoped just to layers and to give more satisfying visual feedback 🤷‍♂️
 tracker=https://github.com/Bimbam360/qgis_layer_search/issues
 tags=search,layers
 homepage=https://github.com/Bimbam360/qgis_layer_search

@@ -181,6 +181,41 @@ class LayerSearchPlugin(QObject):
 			if view in self._original_expanded:
 				self.restore_expansion_state(view, root)
 				del self._original_expanded[view]
+				
+	def unload(self):
+		"""Restore original Layers dock and disconnect signals"""
+		# Find the dock widget that was modified by initGui
+		for dock in self.iface.mainWindow().findChildren(QDockWidget):
+			if "Layers" in dock.windowTitle():
+				container = dock.widget()
+				if isinstance(container, QWidget) and container.layout():
+					# Restore original widget
+					layout = container.layout()
+					if layout.count() > 1:
+						orig = layout.itemAt(1).widget()
+						dock.setWidget(orig)
+				
+				# Disconnect signals
+				if hasattr(self, 'searchBox') and self.searchBox:
+					try:
+						self.searchBox.textChanged.disconnect(self.on_search_text_changed)
+					except TypeError:
+						pass
+				
+				if hasattr(self, 'clearButton') and self.clearButton:
+					try:
+						self.clearButton.clicked.disconnect(self.clear_search)
+					except TypeError:
+						pass
+				
+				break
+		
+		# Clean up references
+		self._original_expanded = None
+		self.searchWidget = None
+		self.searchBox = None
+		self.clearButton = None
+
 
 def run_plugin(iface):
 	return LayerSearchPlugin(iface)

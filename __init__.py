@@ -1,4 +1,4 @@
-from .layersearch import LayerSearchPlugin
-
-def classFactory(iface):
-    return LayerSearchPlugin(iface)
+def classFactory(iface): 
+	"""Load LayerSearchPlugin from layersearch module."""
+	from .layersearch import LayerSearchPlugin
+	return LayerSearchPlugin(iface)
