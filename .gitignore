@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+dist/
+builds/
+. Python build artifacts
+*.egg-info/
+.eggs/
+
+# Virtual Environment (check the actual name used, common ones are venv/, env/)
+venv/
+env/
+
+# IDEs and editors (add others as needed)
+.idea/                 # IntelliJ / PyCharm
+.vscode/               # Visual Studio Code
+*.sublime-workspace     # Sublime Text
+*.sublime-project      # Sublime Text
+
+# Operating System generated files
+.DS_Store             # OSX
+Thumbs.db              # Windows thumbnail cache
+
+# Jupyter Notebook (optional, if you use them)
+ipynb_checkpoints/
+
+# Local development environment settings (optional)
+# config.py         # Or other specific configuration files not meant for versioning
