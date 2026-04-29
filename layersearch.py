@@ -1,7 +1,8 @@
+import re
 from qgis.PyQt.QtCore import Qt, QSettings, QObject, QItemSelectionModel
 from qgis.PyQt.QtWidgets import (
 	QLineEdit, QPushButton, QVBoxLayout, QWidget,
-	QHBoxLayout, QDockWidget
+	QHBoxLayout, QDockWidget, QCheckBox
 )
 from qgis.core import (
 	QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMessageLog, Qgis
@@ -15,7 +16,7 @@ class LayerSearchPlugin(QObject):
 		QgsMessageLog.logMessage(
 			"LayerSearch Plugin: Constructor called",
 			'LayerSearch',
-			level=Qgis.Info
+			level=Qgis.MessageLevel.Info
 		)
 		self.settings = QSettings("QGIS", "LayerSearchPlugin")
 		self._original_expanded = {}
@@ -29,7 +30,7 @@ class LayerSearchPlugin(QObject):
 		QgsMessageLog.logMessage(
 			"LayerSearch Plugin: Initializing GUI",
 			'LayerSearch',
-			level=Qgis.Info
+			level=Qgis.MessageLevel.Info
 		)
 		self.searchWidget = QWidget()
 		layout = QHBoxLayout(self.searchWidget)
@@ -56,23 +57,39 @@ class LayerSearchPlugin(QObject):
 				vlay.setStretchFactor(original, 1)
 				dock.setWidget(container)
 				break
+		
+		# In initGui, after the clearButton:
+		self.regexToggle = QCheckBox("Regex")
+		self.regexToggle.setChecked(False)
+		self.regexToggle.toggled.connect(lambda: self.on_search_text_changed(self.searchBox.text()))
+		layout.addWidget(self.regexToggle)
+
 
 	def find_matching_layers(self, node, search_text):
-		"""Recursively find all layers matching the search text starting from the given node"""
+		"""Recursively find all layers matching the search text starting from the given node."""
 		matches = []
 		if isinstance(node, QgsLayerTreeLayer):
-			if search_text.lower() in node.layer().name().lower():
-				matches.append(node)
+			name = node.layer().name()
+			if self.regexToggle.isChecked():
+				try:
+					if re.search(search_text, name):
+						matches.append(node)
+				except re.error:
+					pass  # silently ignore invalid regex mid-typing
+			else:
+				if search_text.lower() in name.lower():
+					matches.append(node)
 		for child in node.children():
 			matches.extend(self.find_matching_layers(child, search_text))
 		return matches
+
 
 	def on_search_text_changed(self, text):
 		"""Handle search text changes"""
 		QgsMessageLog.logMessage(
 			f"LayerSearch Plugin: on_search_text_changed: '{text}'",
 			'LayerSearch',
-			level=Qgis.Info
+			level=Qgis.MessageLevel.Info
 		)
 		root = QgsProject.instance().layerTreeRoot()
 		for view in self.iface.mainWindow().findChildren(QgsLayerTreeView):
@@ -110,7 +127,7 @@ class LayerSearchPlugin(QObject):
 				idx = view.node2index(node)
 				view.selectionModel().select(
 					idx,
-					QItemSelectionModel.Select | QItemSelectionModel.Rows
+					QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows
 				)
 
 			# Scroll to the first match if any
@@ -172,7 +189,7 @@ class LayerSearchPlugin(QObject):
 		QgsMessageLog.logMessage(
 			"LayerSearch Plugin: clear_search called",
 			'LayerSearch',
-			level=Qgis.Info
+			level=Qgis.MessageLevel.Info
 		)
 		self.searchBox.clear()
 		root = QgsProject.instance().layerTreeRoot()
