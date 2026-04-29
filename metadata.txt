@@ -6,6 +6,7 @@ description=A plugin that adds a search box to the Layers panel to highlight lay
 author=Beau Seymour
 email=beau@seemore.games
 qgisMinimumVersion=3.34
+qgisMaximumVersion=4.99
 experimental=False
 deprecated=False
 category=Plugins
