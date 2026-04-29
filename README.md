@@ -15,7 +15,7 @@ Basically I wanted:
 
 ## Usage
 1. Install and enable the plugin through the QGIS Plugin Manager (TBD - For the time being copy to your plugin directory and enable manually).
-2. A search bar will appear at the top of the Layers panel.
+2. A search bar will appear at the top of the Layers panel. Check the regex button to use regex when searching!
 3. Start typing any part of a layer's name.
 4. Matching layers will be highlighted and their parent groups expanded.
 5. Click "Clear" or delete the search string to reset the panel to its original state.
@@ -26,7 +26,8 @@ Basically I wanted:
 - Expansion state is preserved per view and restored when the search is cleared.
 
 ## Development
-- [x] Basic Search  
+- [x] Basic Search
+- [x] Regex Search! 
 - [ ] Fuzzy Match Search / options? Not sure if necessary tbh
 
 ## License
