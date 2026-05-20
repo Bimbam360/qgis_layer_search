@@ -1,13 +1,15 @@
 import re
 from qgis.PyQt.QtCore import Qt, QSettings, QObject, QItemSelectionModel
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
 	QLineEdit, QPushButton, QVBoxLayout, QWidget,
-	QHBoxLayout, QDockWidget, QCheckBox
+	QHBoxLayout, QDockWidget, QCheckBox, QColorDialog
 )
 from qgis.core import (
 	QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMessageLog, Qgis
 )
 from qgis.gui import QgsLayerTreeView
+
 
 class LayerSearchPlugin(QObject):
 	def __init__(self, iface):
@@ -20,11 +22,9 @@ class LayerSearchPlugin(QObject):
 		)
 		self.settings = QSettings("QGIS", "LayerSearchPlugin")
 		self._original_expanded = {}
-		self.setup_ui()
-
-	def setup_ui(self):
-		# Setup done in initGui
-		pass
+		self._highlight_color = self.settings.value(
+			"highlight_color", "#ffaa00"
+		)
 
 	def initGui(self):
 		QgsMessageLog.logMessage(
@@ -36,34 +36,65 @@ class LayerSearchPlugin(QObject):
 		layout = QHBoxLayout(self.searchWidget)
 		layout.setContentsMargins(2, 2, 2, 2)
 		layout.setSpacing(4)
+
 		self.searchBox = QLineEdit()
 		self.searchBox.setPlaceholderText("Search layers...")
 		self.searchBox.textChanged.connect(self.on_search_text_changed)
-		clearButton = QPushButton("Clear")
-		clearButton.clicked.connect(self.clear_search)
-		clearButton.setMaximumWidth(50)
+
+		self.clearButton = QPushButton("Clear")
+		self.clearButton.clicked.connect(self.clear_search)
+		self.clearButton.setMaximumWidth(50)
+
+		self.regexToggle = QCheckBox("Regex")
+		self.regexToggle.setChecked(False)
+		self.regexToggle.toggled.connect(
+			lambda: self.on_search_text_changed(self.searchBox.text())
+		)
+
+		self.colorButton = QPushButton()
+		self.colorButton.setFixedSize(22, 22)
+		self.colorButton.setToolTip("Pick highlight color")
+		self.colorButton.clicked.connect(self.pick_color)
+		self._update_color_button()
+
 		layout.addWidget(self.searchBox)
-		layout.addWidget(clearButton)
+		layout.addWidget(clearButton := self.clearButton)
+		layout.addWidget(self.regexToggle)
+		layout.addWidget(self.colorButton)
+
 		for dock in self.iface.mainWindow().findChildren(QDockWidget):
 			if "Layers" in dock.windowTitle():
-				original = dock.widget()
+				self._original_dock_widget = dock.widget()
 				container = QWidget()
 				vlay = QVBoxLayout(container)
 				vlay.setContentsMargins(0, 0, 0, 0)
 				vlay.setSpacing(0)
 				vlay.addWidget(self.searchWidget)
-				vlay.addWidget(original)
+				vlay.addWidget(self._original_dock_widget)
 				vlay.setStretchFactor(self.searchWidget, 0)
-				vlay.setStretchFactor(original, 1)
+				vlay.setStretchFactor(self._original_dock_widget, 1)
 				dock.setWidget(container)
 				break
-		
-		# In initGui, after the clearButton:
-		self.regexToggle = QCheckBox("Regex")
-		self.regexToggle.setChecked(False)
-		self.regexToggle.toggled.connect(lambda: self.on_search_text_changed(self.searchBox.text()))
-		layout.addWidget(self.regexToggle)
 
+	def _update_color_button(self):
+		self.colorButton.setStyleSheet(
+			f"background-color:{self._highlight_color}; border:1px solid #555;"
+		)
+
+	def pick_color(self):
+		initial = QColor(self._highlight_color)
+		color = QColorDialog.getColor(initial, None, "Pick highlight color")
+		if color.isValid():
+			self._highlight_color = color.name()
+			self.settings.setValue("highlight_color", self._highlight_color)
+			self._update_color_button()
+			self.on_search_text_changed(self.searchBox.text())
+
+	def _apply_highlight_stylesheet(self, view):
+		view.setStyleSheet(
+			f"QTreeView::item:selected {{ background: {self._highlight_color}; }}"
+			f"QTreeView::item:selected:!active {{ background: {self._highlight_color}; }}"
+		)
 
 	def find_matching_layers(self, node, search_text):
 		"""Recursively find all layers matching the search text starting from the given node."""
@@ -75,7 +106,7 @@ class LayerSearchPlugin(QObject):
 					if re.search(search_text, name):
 						matches.append(node)
 				except re.error:
-					pass  # silently ignore invalid regex mid-typing
+					pass
 			else:
 				if search_text.lower() in name.lower():
 					matches.append(node)
@@ -83,9 +114,8 @@ class LayerSearchPlugin(QObject):
 			matches.extend(self.find_matching_layers(child, search_text))
 		return matches
 
-
 	def on_search_text_changed(self, text):
-		"""Handle search text changes"""
+		"""Handle search text changes."""
 		QgsMessageLog.logMessage(
 			f"LayerSearch Plugin: on_search_text_changed: '{text}'",
 			'LayerSearch',
@@ -93,25 +123,23 @@ class LayerSearchPlugin(QObject):
 		)
 		root = QgsProject.instance().layerTreeRoot()
 		for view in self.iface.mainWindow().findChildren(QgsLayerTreeView):
-			# Clear current selection
 			view.selectionModel().clearSelection()
 
 			if not text:
-				# Restore original expansion state when search is cleared
+				view.setStyleSheet("")
 				if view in self._original_expanded:
 					self.restore_expansion_state(view, root)
 					del self._original_expanded[view]
 				continue
 
-			# Save original expanded state on first search
+			self._apply_highlight_stylesheet(view)
+
 			if view not in self._original_expanded:
 				self._original_expanded[view] = set()
 				self.store_expanded_groups(root, view)
 
-			# Find all matching layers starting from root
 			matches = self.find_matching_layers(root, text)
 
-			# Determine groups to expand
 			groups_to_expand = set()
 			for node in matches:
 				parent = node.parent()
@@ -119,10 +147,8 @@ class LayerSearchPlugin(QObject):
 					groups_to_expand.add(parent)
 					parent = parent.parent()
 
-			# First handle all groups - expand if needed, collapse if shouldn't be expanded
 			self.adjust_group_expansion(view, root, groups_to_expand)
 
-			# Select all matching layers
 			for node in matches:
 				idx = view.node2index(node)
 				view.selectionModel().select(
@@ -130,13 +156,12 @@ class LayerSearchPlugin(QObject):
 					QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows
 				)
 
-			# Scroll to the first match if any
 			if matches:
 				idx = view.node2index(matches[0])
 				view.scrollTo(idx)
 
 	def store_expanded_groups(self, node, view):
-		"""Recursively store the expanded state of all groups"""
+		"""Recursively store the expanded state of all groups."""
 		if isinstance(node, QgsLayerTreeGroup):
 			idx = view.node2index(node)
 			if view.isExpanded(idx):
@@ -146,10 +171,11 @@ class LayerSearchPlugin(QObject):
 					self.store_expanded_groups(child, view)
 
 	def adjust_group_expansion(self, view, node, groups_to_expand):
-		"""Recursively adjust expansion state of groups based on search results
-		- Expand groups in groups_to_expand
-		- Collapse groups that weren't originally expanded and aren't in groups_to_expand
-		- Keep groups expanded if they were originally expanded
+		"""Recursively adjust expansion state of groups based on search results.
+
+		Expands groups in groups_to_expand, collapses groups that were not
+		originally expanded and are not in groups_to_expand, and preserves
+		groups that were originally expanded.
 		"""
 		if not isinstance(node, QgsLayerTreeGroup):
 			return
@@ -170,7 +196,7 @@ class LayerSearchPlugin(QObject):
 				self.adjust_group_expansion(view, child, groups_to_expand)
 
 	def restore_expansion_state(self, view, node):
-		"""Recursively restore the expansion state of all groups"""
+		"""Recursively restore the expansion state of all groups."""
 		if not isinstance(node, QgsLayerTreeGroup):
 			return
 		root = QgsProject.instance().layerTreeRoot()
@@ -185,7 +211,7 @@ class LayerSearchPlugin(QObject):
 				self.restore_expansion_state(view, child)
 
 	def clear_search(self):
-		"""Clear search text and reset view"""
+		"""Clear search text and reset view."""
 		QgsMessageLog.logMessage(
 			"LayerSearch Plugin: clear_search called",
 			'LayerSearch',
@@ -195,43 +221,46 @@ class LayerSearchPlugin(QObject):
 		root = QgsProject.instance().layerTreeRoot()
 		for view in self.iface.mainWindow().findChildren(QgsLayerTreeView):
 			view.selectionModel().clearSelection()
+			view.setStyleSheet("")
 			if view in self._original_expanded:
 				self.restore_expansion_state(view, root)
 				del self._original_expanded[view]
-				
+
 	def unload(self):
-		"""Restore original Layers dock and disconnect signals"""
-		# Find the dock widget that was modified by initGui
+		"""Restore original Layers dock and disconnect signals."""
 		for dock in self.iface.mainWindow().findChildren(QDockWidget):
 			if "Layers" in dock.windowTitle():
-				container = dock.widget()
-				if isinstance(container, QWidget) and container.layout():
-					# Restore original widget
-					layout = container.layout()
-					if layout.count() > 1:
-						orig = layout.itemAt(1).widget()
-						dock.setWidget(orig)
-				
-				# Disconnect signals
+				if hasattr(self, '_original_dock_widget') and self._original_dock_widget:
+					dock.setWidget(self._original_dock_widget)
+
 				if hasattr(self, 'searchBox') and self.searchBox:
 					try:
 						self.searchBox.textChanged.disconnect(self.on_search_text_changed)
 					except TypeError:
 						pass
-				
+
 				if hasattr(self, 'clearButton') and self.clearButton:
 					try:
 						self.clearButton.clicked.disconnect(self.clear_search)
 					except TypeError:
 						pass
-				
+
+				if hasattr(self, 'colorButton') and self.colorButton:
+					try:
+						self.colorButton.clicked.disconnect(self.pick_color)
+					except TypeError:
+						pass
+
 				break
-		
-		# Clean up references
-		self._original_expanded = None
+
+		for view in self.iface.mainWindow().findChildren(QgsLayerTreeView):
+			view.setStyleSheet("")
+
+		self._original_expanded = {}
 		self.searchWidget = None
 		self.searchBox = None
 		self.clearButton = None
+		self.colorButton = None
 
 
 def run_plugin(iface):
