@@ -1,4 +1,5 @@
 import re
+from difflib import SequenceMatcher
 from qgis.PyQt.QtCore import Qt, QSettings, QObject, QItemSelectionModel
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
@@ -47,9 +48,11 @@ class LayerSearchPlugin(QObject):
 
 		self.regexToggle = QCheckBox("Regex")
 		self.regexToggle.setChecked(False)
-		self.regexToggle.toggled.connect(
-			lambda: self.on_search_text_changed(self.searchBox.text())
-		)
+		self.regexToggle.toggled.connect(self._on_mode_toggled_regex)
+
+		self.fuzzyToggle = QCheckBox("Fuzzy")
+		self.fuzzyToggle.setChecked(False)
+		self.fuzzyToggle.toggled.connect(self._on_mode_toggled_fuzzy)
 
 		self.colorButton = QPushButton()
 		self.colorButton.setFixedSize(22, 22)
@@ -60,6 +63,7 @@ class LayerSearchPlugin(QObject):
 		layout.addWidget(self.searchBox)
 		layout.addWidget(clearButton := self.clearButton)
 		layout.addWidget(self.regexToggle)
+		layout.addWidget(self.fuzzyToggle)
 		layout.addWidget(self.colorButton)
 
 		for dock in self.iface.mainWindow().findChildren(QDockWidget):
@@ -96,6 +100,30 @@ class LayerSearchPlugin(QObject):
 			f"QTreeView::item:selected:!active {{ background: {self._highlight_color}; }}"
 		)
 
+	def _on_mode_toggled_regex(self, checked):
+		if checked:
+			self.fuzzyToggle.setChecked(False)
+		self.on_search_text_changed(self.searchBox.text())
+
+	def _on_mode_toggled_fuzzy(self, checked):
+		if checked:
+			self.regexToggle.setChecked(False)
+		self.on_search_text_changed(self.searchBox.text())
+
+	def _fuzzy_match(self, query, name):
+		query_l = query.lower()
+		name_l = name.lower()
+		ratio = SequenceMatcher(None, query_l, name_l).ratio()
+		if ratio >= 0.6:
+			return True
+		# also check if query matches any substring window of similar length
+		q_len = len(query_l)
+		for i in range(len(name_l) - q_len + 1):
+			window = name_l[i:i + q_len]
+			if SequenceMatcher(None, query_l, window).ratio() >= 0.7:
+				return True
+		return False
+
 	def find_matching_layers(self, node, search_text):
 		"""Recursively find all layers matching the search text starting from the given node."""
 		matches = []
@@ -107,6 +135,9 @@ class LayerSearchPlugin(QObject):
 						matches.append(node)
 				except re.error:
 					pass
+			elif self.fuzzyToggle.isChecked():
+				if self._fuzzy_match(search_text, name):
+					matches.append(node)
 			else:
 				if search_text.lower() in name.lower():
 					matches.append(node)
@@ -251,6 +282,18 @@ class LayerSearchPlugin(QObject):
 					except TypeError:
 						pass
 
+				if hasattr(self, 'fuzzyToggle') and self.fuzzyToggle:
+					try:
+						self.fuzzyToggle.toggled.disconnect(self._on_mode_toggled_fuzzy)
+					except TypeError:
+						pass
+
+				if hasattr(self, 'regexToggle') and self.regexToggle:
+					try:
+						self.regexToggle.toggled.disconnect(self._on_mode_toggled_regex)
+					except TypeError:
+						pass
+
 				break
 
 		for view in self.iface.mainWindow().findChildren(QgsLayerTreeView):
@@ -261,6 +304,8 @@ class LayerSearchPlugin(QObject):
 		self.searchBox = None
 		self.clearButton = None
 		self.colorButton = None
+		self.fuzzyToggle = None
+		self.regexToggle = None
 
 
 def run_plugin(iface):

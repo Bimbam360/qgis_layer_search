@@ -1,7 +1,7 @@
 [general]
 icon=icon.png
 name=Layer Search
-version=1.0
+version=1.1
 description=A plugin that adds a search box to the Layers panel to highlight layers by name within the Layer Panel tree
 author=Beau Seymour
 email=beau@seemore.games
